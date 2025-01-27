@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math' show min;
+import 'dart:math' show min, sqrt;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,6 +14,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
         title: 'Flutter Snake',
         theme: ThemeData.dark(),
+        debugShowCheckedModeBanner: false,
         home: const SnakeGame(),
       );
 }
@@ -87,9 +88,12 @@ class _SnakeGameState extends State<SnakeGame> {
       // Bouncing balls
       balls.clear();
 
-      // Score & speed
+      // Score & speed - calculate based on board size
       score = 0;
-      tickSpeed = const Duration(milliseconds: 300);
+      // Aim to cross board diagonally in ~11 seconds
+      final diagonalLength =
+          sqrt(boardRows * boardRows + boardCols * boardCols);
+      tickSpeed = Duration(milliseconds: (11000 / diagonalLength).round());
 
       // Countdown
       countdown = 10;
@@ -364,16 +368,7 @@ class _SnakeGameState extends State<SnakeGame> {
         ),
         body: Column(
           children: [
-            // 1) Timer above the board
-            if (!isGameOver)
-              Padding(
-                padding: const EdgeInsets.all(8),
-                child: Text(
-                  'Timer: $countdown',
-                  style: const TextStyle(fontSize: 18),
-                ),
-              ),
-            // 2) Board area that preserves square aspect ratio
+            // 1) Board area that preserves square aspect ratio
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -439,6 +434,14 @@ class _SnakeGameState extends State<SnakeGame> {
                     ),
                   );
                 },
+              ),
+            ),
+            // 2) Apple Timer below the board
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Text(
+                'Apple Timer: ${isGameOver ? 0 : countdown}',
+                style: const TextStyle(fontSize: 18),
               ),
             ),
           ],
