@@ -505,7 +505,12 @@ class _SnakeGameState extends State<SnakeGame> with WidgetsBindingObserver {
                     'Apple Timer: ${isGameOver ? 0 : countdown}',
                     style: const TextStyle(fontSize: 18),
                   ),
-                  const SizedBox(width: 24), // Space between the two texts
+                  const SizedBox(width: 24),
+                  Text(
+                    'Snake Length: ${snakeBody.length + 1}', // +1 for the head
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(width: 24),
                   Text(
                     'Snake Speed: '
                     '${(1000 / tickSpeed.inMilliseconds).toStringAsFixed(1)}x',
