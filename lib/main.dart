@@ -26,7 +26,7 @@ class SnakeGame extends StatefulWidget {
   State<SnakeGame> createState() => _SnakeGameState();
 }
 
-class _SnakeGameState extends State<SnakeGame> {
+class _SnakeGameState extends State<SnakeGame> with WidgetsBindingObserver {
   // Defaults for board dimensions
   int boardRows = 20;
   int boardCols = 20;
@@ -63,6 +63,28 @@ class _SnakeGameState extends State<SnakeGame> {
   void initState() {
     super.initState();
     resetGame();
+    // Add observer for app lifecycle changes
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    // Remove observer when widget is disposed
+    WidgetsBinding.instance.removeObserver(this);
+    gameTimer?.cancel();
+    countdownTimer.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      // Pause the game when window loses focus
+      if (!isPaused && !isGameOver) {
+        _pauseGame();
+      }
+    }
   }
 
   /// Resets all game variables
@@ -313,29 +335,38 @@ class _SnakeGameState extends State<SnakeGame> {
   KeyEventResult _processKeyEvent(KeyDownEvent event) {
     final key = event.logicalKey;
 
-    // Prevent reversing into yourself
-    if (key == LogicalKeyboardKey.arrowUp && snakeDirection.dy == 0) {
-      if (snakeDirection.dy != 1) {
-        snakeDirection = const Offset(0, -1);
-        _directionChangedThisTick = true;
-      }
-    } else if (key == LogicalKeyboardKey.arrowDown && snakeDirection.dy == 0) {
-      if (snakeDirection.dy != -1) {
-        snakeDirection = const Offset(0, 1);
-        _directionChangedThisTick = true;
-      }
-    } else if (key == LogicalKeyboardKey.arrowLeft && snakeDirection.dx == 0) {
-      if (snakeDirection.dx != 1) {
-        snakeDirection = const Offset(-1, 0);
-        _directionChangedThisTick = true;
-      }
-    } else if (key == LogicalKeyboardKey.arrowRight && snakeDirection.dx == 0) {
-      if (snakeDirection.dx != -1) {
-        snakeDirection = const Offset(1, 0);
-        _directionChangedThisTick = true;
-      }
-    } else if (key == LogicalKeyboardKey.space) {
+    if (key == LogicalKeyboardKey.space) {
       _pauseGame();
+      return KeyEventResult.handled;
+    }
+
+    // Only process direction changes if the game is running
+    if (!isPaused && !isGameOver) {
+      // Prevent reversing into yourself
+      if (key == LogicalKeyboardKey.arrowUp && snakeDirection.dy == 0) {
+        if (snakeDirection.dy != 1) {
+          snakeDirection = const Offset(0, -1);
+          _directionChangedThisTick = true;
+        }
+      } else if (key == LogicalKeyboardKey.arrowDown &&
+          snakeDirection.dy == 0) {
+        if (snakeDirection.dy != -1) {
+          snakeDirection = const Offset(0, 1);
+          _directionChangedThisTick = true;
+        }
+      } else if (key == LogicalKeyboardKey.arrowLeft &&
+          snakeDirection.dx == 0) {
+        if (snakeDirection.dx != 1) {
+          snakeDirection = const Offset(-1, 0);
+          _directionChangedThisTick = true;
+        }
+      } else if (key == LogicalKeyboardKey.arrowRight &&
+          snakeDirection.dx == 0) {
+        if (snakeDirection.dx != -1) {
+          snakeDirection = const Offset(1, 0);
+          _directionChangedThisTick = true;
+        }
+      }
     }
 
     return KeyEventResult.handled;
