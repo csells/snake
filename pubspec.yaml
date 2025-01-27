@@ -11,9 +11,9 @@ dependencies:
     sdk: flutter
 
 dev_dependencies:
+  all_lint_rules_community: ^0.0.43
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
 
 flutter:
   uses-material-design: true

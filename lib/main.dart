@@ -4,22 +4,18 @@ import 'dart:math' show min;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+void main() => runApp(const MyApp());
 
 /// Basic MaterialApp
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Snake',
-      theme: ThemeData.dark(),
-      home: const SnakeGame(),
-    );
-  }
+  Widget build(BuildContext context) => MaterialApp(
+        title: 'Flutter Snake',
+        theme: ThemeData.dark(),
+        home: const SnakeGame(),
+      );
 }
 
 class SnakeGame extends StatefulWidget {
@@ -149,8 +145,8 @@ class _SnakeGameState extends State<SnakeGame> {
       }
 
       // Check for apple
-      bool ateApple = false;
-      for (int i = 0; i < apples.length; i++) {
+      var ateApple = false;
+      for (var i = 0; i < apples.length; i++) {
         if (apples[i] == snakeHead) {
           ateApple = true;
           score++;
@@ -191,12 +187,12 @@ class _SnakeGameState extends State<SnakeGame> {
 
   /// Position + velocity for the bouncing balls
   void _updateBalls() {
-    for (int i = 0; i < balls.length; i++) {
+    for (var i = 0; i < balls.length; i++) {
       final current = balls[i];
       final newPosition = current.position + current.velocity;
 
-      double newDx = current.velocity.dx;
-      double newDy = current.velocity.dy;
+      var newDx = current.velocity.dx;
+      var newDy = current.velocity.dy;
 
       // Bounce off walls
       if (newPosition.dx < 0 || newPosition.dx >= boardCols) {
@@ -206,8 +202,8 @@ class _SnakeGameState extends State<SnakeGame> {
         newDy = -newDy;
       }
 
-      Offset finalVelocity = Offset(newDx, newDy);
-      Offset finalPos = current.position + finalVelocity;
+      var finalVelocity = Offset(newDx, newDy);
+      var finalPos = current.position + finalVelocity;
 
       // Bounce off snake body or apples
       if (snakeBody.contains(finalPos) || apples.contains(finalPos)) {
@@ -241,236 +237,224 @@ class _SnakeGameState extends State<SnakeGame> {
   }
 
   /// Create a random apple position
-  Offset _randomApplePosition() {
-    return Offset(
-      (boardCols *
-              (0.1 + 0.8 * (DateTime.now().millisecondsSinceEpoch % 100) / 100))
-          .floorToDouble(),
-      (boardRows *
-              (0.1 +
-                  0.8 *
-                      (DateTime.now().millisecondsSinceEpoch % 10000) /
-                      10000))
-          .floorToDouble(),
-    );
-  }
+  Offset _randomApplePosition() => Offset(
+        (boardCols *
+                (0.1 +
+                    0.8 * (DateTime.now().millisecondsSinceEpoch % 100) / 100))
+            .floorToDouble(),
+        (boardRows *
+                (0.1 +
+                    0.8 *
+                        (DateTime.now().millisecondsSinceEpoch % 10000) /
+                        10000))
+            .floorToDouble(),
+      );
 
   /// Dialog to let us change board rows/cols
-  void _showBoardSettingsDialog() async {
+  Future<void> _showBoardSettingsDialog() async {
     final newRowsController = TextEditingController(text: boardRows.toString());
     final newColsController = TextEditingController(text: boardCols.toString());
 
     await showDialog<void>(
       context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: const Text('Set Board Dimensions'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: newRowsController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Rows'),
-              ),
-              TextField(
-                controller: newColsController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Columns'),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
+      builder: (ctx) => AlertDialog(
+        title: const Text('Set Board Dimensions'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: newRowsController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Rows'),
             ),
-            ElevatedButton(
-              onPressed: () {
-                final rows = int.tryParse(newRowsController.text) ?? boardRows;
-                final cols = int.tryParse(newColsController.text) ?? boardCols;
-                if (rows > 0 && cols > 0) {
-                  setState(() {
-                    boardRows = rows;
-                    boardCols = cols;
-                  });
-                  resetGame();
-                }
-                Navigator.of(ctx).pop();
-              },
-              child: const Text('Apply'),
+            TextField(
+              controller: newColsController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Columns'),
             ),
           ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final rows = int.tryParse(newRowsController.text) ?? boardRows;
+              final cols = int.tryParse(newColsController.text) ?? boardCols;
+              if (rows > 0 && cols > 0) {
+                setState(() {
+                  boardRows = rows;
+                  boardCols = cols;
+                });
+                resetGame();
+              }
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Apply'),
+          ),
+        ],
+      ),
     );
   }
 
   /// We only allow one direction change per tick
-  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is KeyDownEvent && !_directionChangedThisTick) {
-      final key = event.logicalKey;
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) =>
+      (event is KeyDownEvent && !_directionChangedThisTick)
+          ? _processKeyEvent(event)
+          : KeyEventResult.ignored;
 
-      // Prevent reversing into yourself
-      if (key == LogicalKeyboardKey.arrowUp && snakeDirection.dy == 0) {
-        if (snakeDirection.dy != 1) {
-          snakeDirection = const Offset(0, -1);
-          _directionChangedThisTick = true;
-        }
-      } else if (key == LogicalKeyboardKey.arrowDown &&
-          snakeDirection.dy == 0) {
-        if (snakeDirection.dy != -1) {
-          snakeDirection = const Offset(0, 1);
-          _directionChangedThisTick = true;
-        }
-      } else if (key == LogicalKeyboardKey.arrowLeft &&
-          snakeDirection.dx == 0) {
-        if (snakeDirection.dx != 1) {
-          snakeDirection = const Offset(-1, 0);
-          _directionChangedThisTick = true;
-        }
-      } else if (key == LogicalKeyboardKey.arrowRight &&
-          snakeDirection.dx == 0) {
-        if (snakeDirection.dx != -1) {
-          snakeDirection = const Offset(1, 0);
-          _directionChangedThisTick = true;
-        }
-      } else if (key == LogicalKeyboardKey.space) {
-        _pauseGame();
+  /// Helper method to process key events
+  KeyEventResult _processKeyEvent(KeyDownEvent event) {
+    final key = event.logicalKey;
+
+    // Prevent reversing into yourself
+    if (key == LogicalKeyboardKey.arrowUp && snakeDirection.dy == 0) {
+      if (snakeDirection.dy != 1) {
+        snakeDirection = const Offset(0, -1);
+        _directionChangedThisTick = true;
       }
-
-      return KeyEventResult.handled;
+    } else if (key == LogicalKeyboardKey.arrowDown && snakeDirection.dy == 0) {
+      if (snakeDirection.dy != -1) {
+        snakeDirection = const Offset(0, 1);
+        _directionChangedThisTick = true;
+      }
+    } else if (key == LogicalKeyboardKey.arrowLeft && snakeDirection.dx == 0) {
+      if (snakeDirection.dx != 1) {
+        snakeDirection = const Offset(-1, 0);
+        _directionChangedThisTick = true;
+      }
+    } else if (key == LogicalKeyboardKey.arrowRight && snakeDirection.dx == 0) {
+      if (snakeDirection.dx != -1) {
+        snakeDirection = const Offset(1, 0);
+        _directionChangedThisTick = true;
+      }
+    } else if (key == LogicalKeyboardKey.space) {
+      _pauseGame();
     }
-    return KeyEventResult.ignored;
+
+    return KeyEventResult.handled;
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          isGameOver
-              ? 'Game Over! Score: $score'
-              : 'Flutter Snake - Score: $score',
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: _showBoardSettingsDialog,
-            tooltip: 'Set Board Dimensions',
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(
+          title: Text(
+            isGameOver
+                ? 'Game Over! Score: $score'
+                : 'Flutter Snake - Score: $score',
           ),
-          if (!isGameOver)
+          actions: [
             IconButton(
-              icon: Icon(isPaused ? Icons.play_arrow : Icons.pause),
-              onPressed: _pauseGame,
+              icon: const Icon(Icons.settings),
+              onPressed: _showBoardSettingsDialog,
+              tooltip: 'Set Board Dimensions',
             ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: resetGame,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // 1) Timer above the board
-          if (!isGameOver)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                'Timer: $countdown',
-                style: const TextStyle(fontSize: 18),
+            if (!isGameOver)
+              IconButton(
+                icon: Icon(isPaused ? Icons.play_arrow : Icons.pause),
+                onPressed: _pauseGame,
               ),
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: resetGame,
             ),
-          // 2) Board area that preserves square aspect ratio
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                // The board is a square, so pick the smaller dimension
-                final boardSize =
-                    min(constraints.maxWidth, constraints.maxHeight);
+          ],
+        ),
+        body: Column(
+          children: [
+            // 1) Timer above the board
+            if (!isGameOver)
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Text(
+                  'Timer: $countdown',
+                  style: const TextStyle(fontSize: 18),
+                ),
+              ),
+            // 2) Board area that preserves square aspect ratio
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // The board is a square, so pick the smaller dimension
+                  final double boardSize =
+                      min(constraints.maxWidth, constraints.maxHeight);
 
-                return Center(
-                  // We'll center a square area
-                  child: SizedBox(
-                    width: boardSize,
-                    height: boardSize,
-                    child: Focus(
-                      autofocus: true,
-                      onKeyEvent: _handleKeyEvent,
-                      child: CustomPaint(
-                        size: Size(boardSize, boardSize),
-                        painter: _BoardPainter(
-                          rows: boardRows,
-                          cols: boardCols,
-                          snakeHead: snakeHead,
-                          snakeBody: snakeBody,
-                          apples: apples,
-                          balls: balls,
-                        ),
-                        child: Stack(
-                          children: [
-                            // "Game Over" overlay
-                            if (isGameOver)
-                              Center(
-                                child: Container(
-                                  color: Colors.black54,
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        'Game Over!',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .headlineSmall,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Score: $score',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      ElevatedButton(
-                                        onPressed: resetGame,
-                                        child: const Text('Play Again'),
-                                      ),
-                                    ],
+                  return Center(
+                    // We'll center a square area
+                    child: SizedBox(
+                      width: boardSize,
+                      height: boardSize,
+                      child: Focus(
+                        autofocus: true,
+                        onKeyEvent: _handleKeyEvent,
+                        child: CustomPaint(
+                          size: Size(boardSize, boardSize),
+                          painter: _BoardPainter(
+                            rows: boardRows,
+                            cols: boardCols,
+                            snakeHead: snakeHead,
+                            snakeBody: snakeBody,
+                            apples: apples,
+                            balls: balls,
+                          ),
+                          child: Stack(
+                            children: [
+                              // "Game Over" overlay
+                              if (isGameOver)
+                                Center(
+                                  child: Container(
+                                    color: Colors.black54,
+                                    padding: const EdgeInsets.all(16),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          'Game Over!',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .headlineSmall,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Score: $score',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        ElevatedButton(
+                                          onPressed: resetGame,
+                                          child: const Text('Play Again'),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
+          ],
+        ),
+      );
 }
 
 /// Simple data class for bouncing ball
 class _BouncingBall {
+  const _BouncingBall({required this.position, required this.velocity});
   final Offset position;
   final Offset velocity;
-  const _BouncingBall({required this.position, required this.velocity});
 }
 
 /// CustomPainter for the board elements
 class _BoardPainter extends CustomPainter {
-  final int rows;
-  final int cols;
-  final Offset snakeHead;
-  final List<Offset> snakeBody;
-  final List<Offset> apples;
-  final List<_BouncingBall> balls;
-
   _BoardPainter({
     required this.rows,
     required this.cols,
@@ -479,6 +463,12 @@ class _BoardPainter extends CustomPainter {
     required this.apples,
     required this.balls,
   });
+  final int rows;
+  final int cols;
+  final Offset snakeHead;
+  final List<Offset> snakeBody;
+  final List<Offset> apples;
+  final List<_BouncingBall> balls;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -486,14 +476,14 @@ class _BoardPainter extends CustomPainter {
     final cellHeight = size.height / rows;
 
     // 1) Draw a border around entire board
-    final Paint borderPaint = Paint()
+    final borderPaint = Paint()
       ..color = Colors.grey
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), borderPaint);
 
     // 2) Draw the snake body
-    final Paint snakePaint = Paint()..color = Colors.blue;
+    final snakePaint = Paint()..color = Colors.blue;
     for (final segment in snakeBody) {
       final rect = Rect.fromLTWH(
         segment.dx * cellWidth,
@@ -505,7 +495,7 @@ class _BoardPainter extends CustomPainter {
     }
 
     // 3) Draw the snake head
-    final Paint headPaint = Paint()..color = Colors.lightBlueAccent;
+    final headPaint = Paint()..color = Colors.lightBlueAccent;
     final headRect = Rect.fromLTWH(
       snakeHead.dx * cellWidth,
       snakeHead.dy * cellHeight,
@@ -515,7 +505,7 @@ class _BoardPainter extends CustomPainter {
     canvas.drawRect(headRect, headPaint);
 
     // 4) Draw apples
-    final Paint applePaint = Paint()..color = Colors.red;
+    final applePaint = Paint()..color = Colors.red;
     for (final apple in apples) {
       final rect = Rect.fromLTWH(
         apple.dx * cellWidth,
@@ -527,7 +517,7 @@ class _BoardPainter extends CustomPainter {
     }
 
     // 5) Draw bouncing balls
-    final Paint ballPaint = Paint()..color = Colors.greenAccent;
+    final ballPaint = Paint()..color = Colors.greenAccent;
     for (final ball in balls) {
       final rect = Rect.fromLTWH(
         ball.position.dx * cellWidth,
@@ -543,7 +533,7 @@ class _BoardPainter extends CustomPainter {
       final nearest = _findNearestApple(snakeHead, apples);
       final pathCells = _computeStraightLinePath(snakeHead, nearest);
 
-      final Paint pathPaint = Paint()
+      final pathPaint = Paint()
         ..color = Colors.purple
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0;
@@ -561,22 +551,16 @@ class _BoardPainter extends CustomPainter {
   }
 
   /// Find the apple with smallest Manhattan distance to the head
-  Offset _findNearestApple(Offset head, List<Offset> apples) {
-    Offset nearest = apples.first;
-    double nearestDist = double.infinity;
-    for (final apple in apples) {
-      final dist = (head.dx - apple.dx).abs() + (head.dy - apple.dy).abs();
-      if (dist < nearestDist) {
-        nearestDist = dist;
-        nearest = apple;
-      }
-    }
-    return nearest;
-  }
+  Offset _findNearestApple(Offset head, List<Offset> apples) =>
+      apples.reduce((a, b) {
+        final distA = (head.dx - a.dx).abs() + (head.dy - a.dy).abs();
+        final distB = (head.dx - b.dx).abs() + (head.dy - b.dy).abs();
+        return distA < distB ? a : b;
+      });
 
   /// Return a horizontal-then-vertical path of grid cells from start to end
   List<Offset> _computeStraightLinePath(Offset start, Offset end) {
-    final List<Offset> path = [];
+    final path = <Offset>[];
     final x0 = start.dx.toInt();
     final y0 = start.dy.toInt();
     final x1 = end.dx.toInt();
@@ -584,22 +568,22 @@ class _BoardPainter extends CustomPainter {
 
     // Move horizontally first
     if (x1 > x0) {
-      for (int x = x0 + 1; x <= x1; x++) {
+      for (var x = x0 + 1; x <= x1; x++) {
         path.add(Offset(x.toDouble(), y0.toDouble()));
       }
     } else if (x1 < x0) {
-      for (int x = x0 - 1; x >= x1; x--) {
+      for (var x = x0 - 1; x >= x1; x--) {
         path.add(Offset(x.toDouble(), y0.toDouble()));
       }
     }
 
     // Then move vertically
     if (y1 > y0) {
-      for (int y = y0 + 1; y <= y1; y++) {
+      for (var y = y0 + 1; y <= y1; y++) {
         path.add(Offset(x1.toDouble(), y.toDouble()));
       }
     } else if (y1 < y0) {
-      for (int y = y0 - 1; y >= y1; y--) {
+      for (var y = y0 - 1; y >= y1; y--) {
         path.add(Offset(x1.toDouble(), y.toDouble()));
       }
     }
