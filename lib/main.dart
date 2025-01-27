@@ -60,6 +60,14 @@ class _SnakeGameState extends State<SnakeGame> with WidgetsBindingObserver {
   // Main game loop timer
   Timer? gameTimer;
 
+  // Add speed control variables
+  static const double speedIncrement = 1.05;
+  static const double speedDecrement = 0.95;
+  static const double maxSpeedMultiplier = 3;
+  static const double minSpeedMultiplier = 0.5;
+  double speedMultiplier = 1;
+  Duration baseTickSpeed = const Duration(milliseconds: 300);
+
   // Add SharedPreferences loading
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
@@ -135,7 +143,8 @@ class _SnakeGameState extends State<SnakeGame> with WidgetsBindingObserver {
       // Aim to cross board diagonally in ~11 seconds
       final diagonalLength =
           sqrt(boardRows * boardRows + boardCols * boardCols);
-      tickSpeed = Duration(milliseconds: (11000 / diagonalLength).round());
+      baseTickSpeed = Duration(milliseconds: (11000 / diagonalLength).round());
+      tickSpeed = baseTickSpeed;
 
       // Countdown
       countdown = 10;
@@ -145,6 +154,9 @@ class _SnakeGameState extends State<SnakeGame> with WidgetsBindingObserver {
       // Game loop
       gameTimer?.cancel();
       gameTimer = Timer.periodic(tickSpeed, _updateGame);
+
+      // Update speed calculation
+      speedMultiplier = 1.0;
     });
   }
 
@@ -195,7 +207,8 @@ class _SnakeGameState extends State<SnakeGame> with WidgetsBindingObserver {
       for (var i = 0; i < apples.length; i++) {
         if (apples[i] == snakeHead) {
           ateApple = true;
-          score++;
+          // Update score based on speed multiplier (1000/tickSpeed.inMilliseconds gives current speed)
+          score += ((1000 / tickSpeed.inMilliseconds) * 100).round();
           applesEaten++;
           apples.removeAt(i);
 
@@ -213,10 +226,10 @@ class _SnakeGameState extends State<SnakeGame> with WidgetsBindingObserver {
         // Normal move: remove tail
         snakeBody.removeLast();
       } else {
-        // Speed up slightly
+        // Speed up slightly - using same speedIncrement constant
         gameTimer?.cancel();
-        tickSpeed =
-            Duration(milliseconds: (tickSpeed.inMilliseconds * 0.95).floor());
+        tickSpeed = Duration(
+            milliseconds: (tickSpeed.inMilliseconds * speedIncrement).floor());
         gameTimer = Timer.periodic(tickSpeed, _updateGame);
 
         // Every 5 apples => add a bouncing ball
@@ -378,36 +391,73 @@ class _SnakeGameState extends State<SnakeGame> with WidgetsBindingObserver {
       return KeyEventResult.handled;
     }
 
-    // Only process direction changes if the game is running
+    // Only process changes if the game is running
     if (!isPaused && !isGameOver) {
-      // Prevent reversing into yourself
-      if (key == LogicalKeyboardKey.arrowUp && snakeDirection.dy == 0) {
-        if (snakeDirection.dy != 1) {
-          snakeDirection = const Offset(0, -1);
-          _directionChangedThisTick = true;
-        }
-      } else if (key == LogicalKeyboardKey.arrowDown &&
-          snakeDirection.dy == 0) {
-        if (snakeDirection.dy != -1) {
-          snakeDirection = const Offset(0, 1);
-          _directionChangedThisTick = true;
-        }
-      } else if (key == LogicalKeyboardKey.arrowLeft &&
-          snakeDirection.dx == 0) {
-        if (snakeDirection.dx != 1) {
-          snakeDirection = const Offset(-1, 0);
-          _directionChangedThisTick = true;
-        }
-      } else if (key == LogicalKeyboardKey.arrowRight &&
-          snakeDirection.dx == 0) {
-        if (snakeDirection.dx != -1) {
-          snakeDirection = const Offset(1, 0);
-          _directionChangedThisTick = true;
+      // Handle speed changes when pressing same direction
+      if ((key == LogicalKeyboardKey.arrowUp && snakeDirection.dy == -1) ||
+          (key == LogicalKeyboardKey.arrowDown && snakeDirection.dy == 1) ||
+          (key == LogicalKeyboardKey.arrowLeft && snakeDirection.dx == -1) ||
+          (key == LogicalKeyboardKey.arrowRight && snakeDirection.dx == 1)) {
+        _adjustSpeed(speedIncrement);
+        return KeyEventResult.handled;
+      }
+
+      // Handle speed changes when pressing opposite direction
+      if ((key == LogicalKeyboardKey.arrowUp && snakeDirection.dy == 1) ||
+          (key == LogicalKeyboardKey.arrowDown && snakeDirection.dy == -1) ||
+          (key == LogicalKeyboardKey.arrowLeft && snakeDirection.dx == 1) ||
+          (key == LogicalKeyboardKey.arrowRight && snakeDirection.dx == -1)) {
+        _adjustSpeed(speedDecrement);
+        return KeyEventResult.handled;
+      }
+
+      // Handle direction changes (existing logic)
+      if (!_directionChangedThisTick) {
+        if (key == LogicalKeyboardKey.arrowUp && snakeDirection.dy == 0) {
+          if (snakeDirection.dy != 1) {
+            snakeDirection = const Offset(0, -1);
+            _directionChangedThisTick = true;
+          }
+        } else if (key == LogicalKeyboardKey.arrowDown &&
+            snakeDirection.dy == 0) {
+          if (snakeDirection.dy != -1) {
+            snakeDirection = const Offset(0, 1);
+            _directionChangedThisTick = true;
+          }
+        } else if (key == LogicalKeyboardKey.arrowLeft &&
+            snakeDirection.dx == 0) {
+          if (snakeDirection.dx != 1) {
+            snakeDirection = const Offset(-1, 0);
+            _directionChangedThisTick = true;
+          }
+        } else if (key == LogicalKeyboardKey.arrowRight &&
+            snakeDirection.dx == 0) {
+          if (snakeDirection.dx != -1) {
+            snakeDirection = const Offset(1, 0);
+            _directionChangedThisTick = true;
+          }
         }
       }
     }
 
     return KeyEventResult.handled;
+  }
+
+  // Add speed adjustment method
+  void _adjustSpeed(double multiplier) {
+    setState(() {
+      speedMultiplier *= multiplier;
+      // Clamp speed multiplier between min and max values
+      speedMultiplier =
+          speedMultiplier.clamp(minSpeedMultiplier, maxSpeedMultiplier);
+
+      // Update tick speed and restart timer
+      tickSpeed = Duration(
+          milliseconds:
+              (baseTickSpeed.inMilliseconds / speedMultiplier).round());
+      gameTimer?.cancel();
+      gameTimer = Timer.periodic(tickSpeed, _updateGame);
+    });
   }
 
   @override
