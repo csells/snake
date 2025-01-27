@@ -3,6 +3,7 @@ import 'dart:math' show min, sqrt;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() => runApp(const MyApp());
 
@@ -27,9 +28,9 @@ class SnakeGame extends StatefulWidget {
 }
 
 class _SnakeGameState extends State<SnakeGame> with WidgetsBindingObserver {
-  // Defaults for board dimensions
-  int boardRows = 20;
-  int boardCols = 20;
+  // Change these to late variables since we'll initialize them in initState
+  late int boardRows;
+  late int boardCols;
 
   // Snake state
   List<Offset> snakeBody = [];
@@ -59,11 +60,30 @@ class _SnakeGameState extends State<SnakeGame> with WidgetsBindingObserver {
   // Main game loop timer
   Timer? gameTimer;
 
+  // Add SharedPreferences loading
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      boardRows = prefs.getInt('boardRows') ?? 20;
+      boardCols = prefs.getInt('boardCols') ?? 20;
+    });
+    resetGame();
+  }
+
+  // Add SharedPreferences saving
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('boardRows', boardRows);
+    await prefs.setInt('boardCols', boardCols);
+  }
+
   @override
   void initState() {
     super.initState();
-    resetGame();
-    // Add observer for app lifecycle changes
+    // Initialize with defaults before loading saved values
+    boardRows = 20;
+    boardCols = 20;
+    _loadSettings();
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -314,6 +334,7 @@ class _SnakeGameState extends State<SnakeGame> with WidgetsBindingObserver {
                   boardRows = rows;
                   boardCols = cols;
                 });
+                _saveSettings(); // Save the new settings
                 resetGame();
               }
               Navigator.of(ctx).pop();
