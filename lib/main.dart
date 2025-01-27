@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math' show min, sqrt;
+import 'dart:math' show Random, min, sqrt;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -83,7 +83,7 @@ class _SnakeGameState extends State<SnakeGame> with WidgetsBindingObserver {
     // Initialize with defaults before loading saved values
     boardRows = 20;
     boardCols = 20;
-    _loadSettings();
+    unawaited(_loadSettings());
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -289,19 +289,29 @@ class _SnakeGameState extends State<SnakeGame> with WidgetsBindingObserver {
     });
   }
 
-  /// Create a random apple position
-  Offset _randomApplePosition() => Offset(
-        (boardCols *
-                (0.1 +
-                    0.8 * (DateTime.now().millisecondsSinceEpoch % 100) / 100))
-            .floorToDouble(),
-        (boardRows *
-                (0.1 +
-                    0.8 *
-                        (DateTime.now().millisecondsSinceEpoch % 10000) /
-                        10000))
-            .floorToDouble(),
-      );
+  /// Create a random apple position that's not on the snake
+  Offset _randomApplePosition() {
+    // Create a list of all possible positions
+    final availablePositions = <Offset>[];
+    for (var x = 0; x < boardCols; x++) {
+      for (var y = 0; y < boardRows; y++) {
+        final pos = Offset(x.toDouble(), y.toDouble());
+        // Only add if not on snake head or body
+        if (pos != snakeHead && !snakeBody.contains(pos)) {
+          availablePositions.add(pos);
+        }
+      }
+    }
+
+    if (availablePositions.isEmpty) {
+      // Fallback in case board is full (shouldn't happen in practice)
+      return Offset.zero;
+    }
+
+    // Pick a random available position
+    final random = Random();
+    return availablePositions[random.nextInt(availablePositions.length)];
+  }
 
   /// Dialog to let us change board rows/cols
   Future<void> _showBoardSettingsDialog() async {
