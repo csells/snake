@@ -198,6 +198,13 @@ class _SnakeGameState extends State<SnakeGame> with WidgetsBindingObserver {
           score++;
           applesEaten++;
           apples.removeAt(i);
+
+          // Add segments based on average board dimension / 10
+          final growthAmount = ((boardRows + boardCols) / 20).floor();
+          final tailPos = snakeBody.last;
+          for (var j = 0; j < growthAmount - 1; j++) {
+            snakeBody.add(tailPos);
+          }
           break;
         }
       }
