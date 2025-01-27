@@ -436,12 +436,23 @@ class _SnakeGameState extends State<SnakeGame> {
                 },
               ),
             ),
-            // 2) Apple Timer below the board
+            // 2) Status row below the board
             Padding(
               padding: const EdgeInsets.all(8),
-              child: Text(
-                'Apple Timer: ${isGameOver ? 0 : countdown}',
-                style: const TextStyle(fontSize: 18),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Apple Timer: ${isGameOver ? 0 : countdown}',
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(width: 24), // Space between the two texts
+                  Text(
+                    'Snake Speed: '
+                    '${(1000 / tickSpeed.inMilliseconds).toStringAsFixed(1)}x',
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                ],
               ),
             ),
           ],
